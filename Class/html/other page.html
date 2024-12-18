@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle Game</title>
+    <style>
+        /* Applying the style guide */
+        body {
+            background-color: black;
+            color: white;
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            text-align: center; /* Center all text */
+        }
+
+        .navbar {
+            background-color: #333;
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            padding: 5px 10px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .navbar a:hover {
+            background-color: #555;
+            color: #ffd700;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 60px);
+            gap: 10px;
+            justify-content: center;
+            margin-top: 50px;
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #444;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            border-radius: 5px;
+        }
+
+        .correct { background-color: green; }
+        .present { background-color: #FFA500; } /* Yellow-Orange color */
+        .absent { background-color: gray; }
+
+        .input-row {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .input-row input {
+            width: 200px;
+            height: 40px;
+            text-align: center;
+            font-size: 18px;
+            margin: 0 5px;
+            background-color: #333;
+            color: white;
+            border: 2px solid #444;
+            border-radius: 5px;
+        }
+
+        .input-row input:focus {
+            outline: none;
+            border-color: #ffd700;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .message {
+            font-size: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 16px;
+            text-decoration: none;
+            color: #ffd700;
+        }
+
+        .back-link:hover {
+            color: #ff4500;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffd700;
+            margin-top: 50px;
+        }
+
+        p {
+            margin: 10px 0;
+            color: white;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+    <a class="back-link" href="../Index.html">Main Page</a>
+    <h1>Wordle Game</h1>
+    <div class="game-board" id="gameBoard"></div>
+    <div class="input-row">
+        <input type="text" id="guessInput" maxlength="5" oninput="handleInput(this)" autofocus>
+        <button onclick="submitGuess()">Submit Guess</button>
+    </div>
+    <div class="instructions">
+        <p>Guess the 5-letter word! After each guess:</p>
+        <p><span style="color:green;">Green</span> means correct letter and position.</p>
+        <p><span style="color:#FFA500;">Yellow</span> means correct letter, wrong position.</p>
+        <p><span style="color:gray;">Gray</span> means incorrect letter.</p>
+    </div>
+    <div class="message" id="message"></div>
+
+    <script>
+        const words = [
+    "apple", "berry", "grape", "lemon", "melon", 
+    "magic", "ocean", "flame", "brave", "cider", 
+    "whale", "frost", "glory", "maple", "spice", 
+    "plaza", "crown", "blush", "quest", "honey", 
+    "shine", "lunar", "twist", "drift", "amber", 
+    "toast", "flair", "cloak", "storm", "royal", 
+    "spark", "brisk", "charm", "vivid", "bloom", 
+    "eagle", "flora", "blaze", "pearl", "woven",
+    "urban", "jolly", "grace", "sassy", "mocha",
+    "sunny", "cloud", "hazel", "tempo", "ivory",
+    "truce", "fancy", "tiger", "spire", "grove",
+    "merry", "happy", "valor", "dream", "chill",
+    "fable", "witty", "pride", "smile", "orbit",
+    "angel", "spicy", "quilt", "lodge", "valve",
+    "pivot", "dizzy", "frank", "siren", "trail",
+    "quiet", "vapor", "sword", "giddy", "wheat",
+    "shard", "sworn", "arbor", "blend", "mirth",
+    "steep", "perch", "creek", "frost", "basil",
+    "carve", "diver", "flute", "grape", "waltz",
+    "noble", "vivid", "pluck", "rover", "scarf",
+    "truth", "windy", "zebra", "polar", "forge",
+    "spike", "amber", "ember", "chime", "dawn",
+    "fancy", "flesh", "glide", "jewel", "knack",
+    "lofty", "modem", "night", "olive", "plush",
+    "quill", "raven", "shard", "sweep", "token",
+    "ultra", "vague", "witty", "xerox", "yacht",
+    "zesty", "alpha", "brisk", "charm", "dealt",
+    "eagle", "flare", "glory", "house", "inbox",
+    "jolly", "kneel", "lemon", "medal", "niche",
+    "ocean", "plant", "quack", "risky", "slant",
+    "tower", "urban", "vocal", "whisk", "youth",
+    "zebra", "adorn", "beast", "crazy", "dread",
+    "epoch", "flick", "globe", "honor", "ivory",
+    "jazzy", "kudos", "light", "mango", "noble",
+    "onset", "piano", "query", "rider", "suite",
+    "tango", "union", "venom", "waltz", "xenon",
+    "yummy", "zonal", "badge", "canoe", "dodge",
+    "elbow", "flake", "grove", "heart", "image",
+    "joker", "karma", "laser", "mixer", "nerve",
+    "oasis", "pearl", "quest", "raven", "siren",
+    "trend", "unite", "verse", "woven", "xylax",
+    "yield", "zippy", "align", "blush", "clear",
+    "drift", "early", "frost", "grape", "hatch",
+    "inlet", "jazzy", "kneel", "latch", "minor",
+    "notch", "oxide", "plume", "quilt", "ranch",
+    "shard", "torch", "udder", "vivid", "waste",
+    "zebra"
+];
+
+        const targetWord = words[Math.floor(Math.random() * words.length)];
+        let attempts = 0;
+        const maxAttempts = 6;
+
+        function createBoard() {
+            const gameBoard = document.getElementById("gameBoard");
+            gameBoard.innerHTML = "";
+            for (let i = 0; i < maxAttempts; i++) {
+                for (let j = 0; j < 5; j++) {
+                    const cell = document.createElement("div");
+                    cell.classList.add("cell");
+                    gameBoard.appendChild(cell);
+                }
+            }
+        }
+
+        function handleInput(inputElement) {
+            let input = inputElement.value;
+            if (input.match(/[a-zA-Z]/)) {
+                inputElement.value = input.toUpperCase();
+            }
+        }
+
+        function submitGuess() {
+            const guessInput = document.getElementById("guessInput");
+            let guess = guessInput.value.toLowerCase();
+            if (guess.length !== 5) {
+                alert("Please enter a 5-letter word.");
+                return;
+            }
+
+            attempts++;
+
+            let result = checkGuess(guess);
+            displayResult(result, guess);
+            guessInput.value = "";
+
+            if (guess === targetWord) {
+                document.getElementById("message").innerHTML = "You won! The word was " + targetWord + ".";
+            } else if (attempts >= maxAttempts) {
+                document.getElementById("message").innerHTML = "Game over! The word was " + targetWord + ".";
+            }
+        }
+
+        function checkGuess(guess) {
+            let result = [];
+            for (let i = 0; i < 5; i++) {
+                if (guess[i] === targetWord[i]) {
+                    result.push("correct");
+                } else if (targetWord.includes(guess[i])) {
+                    result.push("present");
+                } else {
+                    result.push("absent");
+                }
+            }
+            return result;
+        }
+
+        function displayResult(result, guess) {
+            const gameBoard = document.getElementById("gameBoard");
+            const cells = gameBoard.children;
+            const currentRowStart = (attempts - 1) * 5;
+            for (let i = 0; i < 5; i++) {
+                const cell = cells[currentRowStart + i];
+                cell.textContent = guess[i].toUpperCase();
+                if (result[i] === "correct") {
+                    cell.classList.add("correct");
+                } else if (result[i] === "present") {
+                    cell.classList.add("present");
+                } else {
+                    cell.classList.add("absent");
+                }
+            }
+        }
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                submitGuess();
+            }
+        });
+
+        createBoard();
+    </script>
+</body>
+</html>
